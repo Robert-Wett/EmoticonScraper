@@ -1,0 +1,62 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Live Tweets</title>
+  <meta name="description" content="The HTML5 Herald">
+  <meta name="author" content="SitePoint">
+  <link href="stylesheets/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css?v=1.0">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+</head>
+
+<body>
+	<div class="hero-unit">
+		<h1>How happy are we...</h1>
+		<h1><span id="top-emotion" 
+			      style="font-size:400%">
+			</span>
+			&nbsp;&nbsp;&nbsp;&nbsp;
+			<span id="top-emotion-count"
+				  style="font-size:50%">
+			</span>
+			<span style="font-size:60%">/</span>
+			<span id="total-count"
+			      style="font-size:50%">
+			</span>
+		</h1>
+	</div>
+	<div id="main-display">
+	</div>
+	<table id="tweet-container"
+		   class="table table-striped primary">
+	</table>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript">
+	    var socket = io.connect('http://localhost:5000');
+	    socket.on('tweet', function(data) {
+	    	$("#main-display").empty();
+	    	$("#main-display").append(data.html);
+	    	$("#tweet-container").empty();
+	    	$("#tweet-container").html(data.tweets);
+	    	$("#total-count").html(data.total);
+	    	//$("#tweets ul").prepend(content);
+	    });
+	    socket.on('topEmoticon', function(data) {
+	    	$("#top-emotion").html(data.symbol);
+	    	$("#top-emotion-count").html(data.count);
+	    });
+	    socket.on('initData', function(data) {
+	    	$("#top-emotion").html(data.symbol);
+	    	$("#top-emotion-count").html(data.count);
+	    });
+	</script>    
+</body>
+</html>
