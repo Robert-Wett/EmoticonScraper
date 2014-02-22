@@ -22,6 +22,11 @@ app.configure(function(){
 app.get('/', function(req, res) {
   res.render('tweets');
 });
+
+// Here's where we'll route to our experimental angular stuff.
+app.get('/ng', function(req, res) {
+  res.render('ngView');
+});
 server.listen(app.get('port'), function(){
   console.log("Express server listening on port " + app.get('port'));
 });
