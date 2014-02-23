@@ -10,14 +10,15 @@
   <link href="stylesheets/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css?v=1.0">
   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.10/angular.min.js">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.0rc3/angular-animate.min.js">
 
   <!--[if lt IE 9]>
   <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
   <![endif]-->
 </head>
 
-<body>
-	<div class="hero-unit">
+<body ng-app="app">
+	<div class="hero-unit" ng-controller="HeroUnitController">
 		<h1>How happy are we...</h1>
 		<h1><span id="top-emotion" 
 			      style="font-size:400%">
@@ -32,7 +33,7 @@
 			</span>
 		</h1>
 	</div>
-	<div id="main-display">
+	<div id="main-display" ng-controller="MainDisplayController">
 	</div>
 	<table id="tweet-container"
 		   class="table table-striped primary">
