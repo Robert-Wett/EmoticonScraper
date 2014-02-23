@@ -9,6 +9,10 @@ function emoticon(symbol, count, positive, desc, wins) {
   this.tweets = [];
 }
 
+emoticon.prototype.json = function() {
+  return JSON.stringify(this);
+};
+
 emoticon.prototype.print = function() {
   return this.symbol + '\n------\n' +
         "Count: " + this.count + '\n' +

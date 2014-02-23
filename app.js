@@ -27,6 +27,7 @@ app.get('/', function(req, res) {
 app.get('/ng', function(req, res) {
   res.render('ngView');
 });
+
 server.listen(app.get('port'), function(){
   console.log("Express server listening on port " + app.get('port'));
 });

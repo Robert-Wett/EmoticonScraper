@@ -1,0 +1,9 @@
+# Hold secret information here
+config.js
+
+# Only import custom modules
+modules/*
+!modules/emoticons.js
+
+# Vendor stuff
+app/lib/*
