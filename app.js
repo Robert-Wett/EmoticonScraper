@@ -1,11 +1,11 @@
-//               _   _   _              __ 
+//               _   _   _              __
 //              | | | | | |            / _|
-// __      _____| |_| |_| | ___   __ _| |_ 
+// __      _____| |_| |_| | ___   __ _| |_
 // \ \ /\ / / _ \ __| __| |/ _ \ / _` |  _|
-//  \ V  V /  __/ |_| |_| | (_) | (_| | |  
-//   \_/\_/ \___|\__|\__|_|\___/ \__,_|_|  
-//                                         
-//                                         
+//  \ V  V /  __/ |_| |_| | (_) | (_| | |
+//   \_/\_/ \___|\__|\__|_|\___/ \__,_|_|
+//
+//
 
 var express = require('express')
   , app = express()
@@ -14,14 +14,16 @@ var express = require('express')
   , path = require('path')
   , twitter = require('ntwitter')
   , emo = require('./modules/emoticons.js')
-  , _ = require('underscore');
+  , _ = require('underscore')
+  , events = require('events')
+  , eventEmitter = events.EventEmitter();
 
 app.configure(function(){
   app.set('port', process.env.PORT || 5000);
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
   app.use(express.favicon());
-  app.use(express.logger('dev'));
+  app.use(express.logger());
   app.use(express.bodyParser());
   app.use(express.methodOverride());
   app.use(app.router);
@@ -36,30 +38,36 @@ server.listen(app.get('port'), function(){
 });
 
 var twit = new twitter({
-    consumer_key: 'your key here',
-    consumer_secret: 'your secret here',
-    access_token_key: 'your token key here',
-    access_token_secret: 'your token secret here'
+    consumer_key: '',
+    consumer_secret: '',
+    access_token_key: '',
+    access_token_secret: ''
 });
 
+
 var opts = {
-  rate: 10
-}
+  rate: 0,
+  resetCount: 100000000000000,
+  throttleNum: 150,
+  tweetLimit: 25,
+  getLocation: false
+};
+
 var state = {
   topCount: 0,
   totalCount: 0,
   clientCount: 0,
-  rateLimit: 0,
-  topEmotion: {}
+  topEmoticon: {},
+  roundNumber: 1
 };
 
 /* ----- Define Socket Events --------*/
 io.sockets.on('connection', function(socket) {
-  //console.log('Connected');
   state.clientCount++;
   var returnData = {
-    symbol: state.topEmotion.symbol,
-    count: state.topCount
+    symbol: state.topEmoticon.symbol,
+    count: state.topCount,
+    list: emo.list
   };
   socket.emit('initData', returnData);
 });
@@ -72,43 +80,59 @@ var _clearState = function() {
   state.topCount = 0;
   state.totalCount = 0;
   state.clientCount = 0;
-  state.rateLimit = 0;
+  state.rateLimit = 1;
   _.each(emo.list, function(elem) {
     elem.clear_state();
   });
 };
 
-var handleTweet = function( tweet ) {
-  if (state.rateLimit === opts.rate) {
-    _.each(emo.list, function(elem) {
-      _.each(tweet.text.split(" "), function(word) {
-        if (elem.symbol === word && !_.contains(elem.tweets, word)) {
-          elem.count++;
-          elem.tweets.push(tweet.text);
-          state.totalCount++;
-          emitTweetEvent(elem);
-          if (elem.count > state.topCount) {
-            emitTopEmoticonEvent(elem);
-          }
-          if (state.totalCount >= 200) {
-            _clearState();
-          }
-        }
-      });
-    });
-    state.rateLimit =  0;
+var addTweetToEmoticon = function(tweetArray, tweet) {
+  if (tweetArray.length >= opts.tweetLimit) {
+    tweetArray.shift();
+    tweetArray.push(tweet);
   } else {
-    state.rateLimit++;
+    tweetArray.push(tweet);
   }
-
 };
 
+var handleTweet = function( tweet ) {
+  /*
+  if (opts.getLocation && tweet.place) {
+    handleLocations(tweet);
+  }
+  */
+  _.each(emo.list, function(elem) {
+    _.each(tweet.text.split(" "), function(word) {
+      if (elem.symbol === word && !_.contains(elem.tweets, tweet.text)) {
+        elem.count++;
+        state.totalCount++;
+        addTweetToEmoticon(elem.tweets, tweet.text);
+        emitTweetEvent(elem);
+        if (elem.count > state.topCount) {
+          emitTopEmoticonEvent(elem);
+        }
+        if (state.totalCount >= opts.resetCount) {
+          elem.roundWins.push(state.roundNumber);
+          state.roundNumber++;
+          _clearState();
+        }
+      }
+    });
+  });
+};
+
+var consoleLogTweet = function( tweet ) {
+  if (tweet.place !== null) {
+    console.log(tweet);
+  }
+};
 
 var emitTweetEvent = function(elem){
   var returnData = {
     html: elem.print_html(),
     total: state.totalCount,
     tweets: elem.print_tweets()
+    //emo: elem
   };
   io.sockets.volatile.emit('tweet', returnData);
 };
@@ -119,13 +143,14 @@ var emitTopEmoticonEvent = function(elem){
     count: elem.count
   };
   state.topCount = elem.count;
-  state.topEmotion = elem;
+  state.topEmoticon = elem;
   io.sockets.emit('topEmoticon', returnData);
 };
 
 
-(function startStream( twit ) {
+// Start the stream
+(function startStream( twit, throttleNum ) {
   twit.stream('statuses/filter', { track: emo.symbols }, function(stream) {
-    stream.on('data', handleTweet);
+    stream.on('data', _.throttle(handleTweet, throttleNum));
   });
-})(twit);
+})(twit, opts.throttleNum);
